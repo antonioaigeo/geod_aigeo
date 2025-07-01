@@ -1,344 +1,373 @@
-import React, { useState, useEffect } from 'react';
-
-// Função para geocodificar um endereço usando a API Nominatim do OpenStreetMap
-const geocodeAddress = async (address) => {
-    // A API Nominatim do OpenStreetMap é usada para geocodificação.
-    // É uma API gratuita para uso razoável, ideal para demonstrações e pequenos volumes.
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`;
-    try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            // Lança um erro se a resposta HTTP não for bem-sucedida
-            throw new Error(`Erro HTTP! status: ${response.status}`);
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geocodificador de Endereços</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React e ReactDOM UMD builds -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel para transformar JSX no navegador -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        /* Estilos personalizados para o corpo, se necessário, embora Tailwind seja dominante */
+        body {
+            font-family: "Inter", sans-serif;
         }
-        const data = await response.json();
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div id="root"></div>
 
-        if (data && data.length > 0) {
-            // Se houver resultados, retorna o primeiro resultado encontrado
-            const result = data[0];
-            return {
-                originalAddress: address,
-                latitude: parseFloat(result.lat).toFixed(6),
-                longitude: parseFloat(result.lon).toFixed(6),
-                status: 'Sucesso'
-            };
-        } else {
-            // Se nenhum resultado for encontrado
-            return {
-                originalAddress: address,
-                latitude: 'N/A',
-                longitude: 'N/A',
-                status: 'Não Encontrado'
-            };
-        }
-    } catch (error) {
-        // Captura e registra quaisquer erros durante a requisição
-        console.error("Erro ao geocodificar endereço:", address, error);
-        return {
-            originalAddress: address,
-            latitude: 'Erro',
-            longitude: 'Erro',
-            status: `Erro: ${error.message}`
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Função para geocodificar um endereço usando a API Nominatim do OpenStreetMap
+        const geocodeAddress = async (address) => {
+            // A API Nominatim do OpenStreetMap é usada para geocodificação.
+            // É uma API gratuita para uso razoável, ideal para demonstrações e pequenos volumes.
+            const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`;
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    // Lança um erro se a resposta HTTP não for bem-sucedida
+                    throw new Error(`Erro HTTP! status: ${response.status}`);
+                }
+                const data = await response.json();
+
+                if (data && data.length > 0) {
+                    // Se houver resultados, retorna o primeiro resultado encontrado
+                    const result = data[0];
+                    return {
+                        originalAddress: address,
+                        latitude: parseFloat(result.lat).toFixed(6),
+                        longitude: parseFloat(result.lon).toFixed(6),
+                        status: 'Sucesso'
+                    };
+                } else {
+                    // Se nenhum resultado for encontrado
+                    return {
+                        originalAddress: address,
+                        latitude: 'N/A',
+                        longitude: 'N/A',
+                        status: 'Não Encontrado'
+                    };
+                }
+            } catch (error) {
+                // Captura e registra quaisquer erros durante a requisição
+                console.error("Erro ao geocodificar endereço:", address, error);
+                return {
+                    originalAddress: address,
+                    latitude: 'Erro',
+                    longitude: 'Erro',
+                    status: `Erro: ${error.message}`
+                };
+            }
         };
-    }
-};
 
-// Componente principal da aplicação
-const App = () => {
-    // Estados para gerenciar os dados da aplicação
-    const [addresses, setAddresses] = useState([]); // Lista de endereços inseridos/importados
-    const [newAddress, setNewAddress] = useState(''); // Endereço sendo digitado
-    const [geocodedResults, setGeocodedResults] = useState([]); // Resultados geocodificados
-    const [activeTab, setActiveTab] = useState('manual'); // Aba ativa: 'manual' ou 'import'
-    const [isLoading, setIsLoading] = useState(false); // Estado de carregamento
-    const [showHelp, setShowHelp] = useState(false); // Estado para mostrar/esconder a ajuda
+        // Componente principal da aplicação
+        const App = () => {
+            // Estados para gerenciar os dados da aplicação
+            const [addresses, setAddresses] = useState([]); // Lista de endereços inseridos/importados
+            const [newAddress, setNewAddress] = useState(''); // Endereço sendo digitado
+            const [geocodedResults, setGeocodedResults] = useState([]); // Resultados geocodificados
+            const [activeTab, setActiveTab] = useState('manual'); // Aba ativa: 'manual' ou 'import'
+            const [isLoading, setIsLoading] = useState(false); // Estado de carregamento
+            const [showHelp, setShowHelp] = useState(false); // Estado para mostrar/esconder a ajuda
 
-    // Carregar dados do localStorage ao iniciar a aplicação
-    useEffect(() => {
-        try {
-            const storedAddresses = localStorage.getItem('geocodingAddresses');
-            const storedResults = localStorage.getItem('geocodingResults');
-            if (storedAddresses) {
-                setAddresses(JSON.parse(storedAddresses));
-            }
-            if (storedResults) {
-                setGeocodedResults(JSON.parse(storedResults));
-            }
-        } catch (error) {
-            console.error("Erro ao carregar dados do localStorage:", error);
-        }
-    }, []);
+            // Carregar dados do localStorage ao iniciar a aplicação
+            useEffect(() => {
+                try {
+                    const storedAddresses = localStorage.getItem('geocodingAddresses');
+                    const storedResults = localStorage.getItem('geocodingResults');
+                    if (storedAddresses) {
+                        setAddresses(JSON.parse(storedAddresses));
+                    }
+                    if (storedResults) {
+                        setGeocodedResults(JSON.parse(storedResults));
+                    }
+                } catch (error) {
+                    console.error("Erro ao carregar dados do localStorage:", error);
+                }
+            }, []);
 
-    // Salvar dados no localStorage sempre que 'addresses' ou 'geocodedResults' mudarem
-    useEffect(() => {
-        try {
-            localStorage.setItem('geocodingAddresses', JSON.stringify(addresses));
-            localStorage.setItem('geocodingResults', JSON.stringify(geocodedResults));
-        } catch (error) {
-            console.error("Erro ao salvar dados no localStorage:", error);
-        }
-    }, [addresses, geocodedResults]);
+            // Salvar dados no localStorage sempre que 'addresses' ou 'geocodedResults' mudarem
+            useEffect(() => {
+                try {
+                    localStorage.setItem('geocodingAddresses', JSON.stringify(addresses));
+                    localStorage.setItem('geocodingResults', JSON.stringify(geocodedResults));
+                } catch (error) {
+                    console.error("Erro ao salvar dados no localStorage:", error);
+                }
+            }, [addresses, geocodedResults]);
 
-    // Adiciona um novo endereço à lista
-    const handleAddAddress = () => {
-        if (newAddress.trim() !== '') {
-            setAddresses(prev => [...prev, newAddress.trim()]);
-            setNewAddress('');
-        }
-    };
-
-    // Geocodifica todos os endereços na lista 'addresses'
-    const handleGeocodeAll = async () => {
-        setIsLoading(true);
-        const results = [];
-        for (const address of addresses) {
-            const result = await geocodeAddress(address);
-            results.push(result);
-        }
-        setGeocodedResults(results);
-        setIsLoading(false);
-    };
-
-    // Lida com a importação de arquivos CSV
-    const handleFileUpload = (event) => {
-        const file = event.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const text = e.target.result;
-                const importedAddresses = text.split('\n')
-                                            .map(line => line.trim())
-                                            .filter(line => line !== '');
-                setAddresses(prev => [...prev, ...importedAddresses]);
-                // Usando um modal simples para feedback em vez de alert()
-                alert('Endereços importados com sucesso! Clique em "Geocodificar Tudo" para processá-los.');
+            // Adiciona um novo endereço à lista
+            const handleAddAddress = () => {
+                if (newAddress.trim() !== '') {
+                    setAddresses(prev => [...prev, newAddress.trim()]);
+                    setNewAddress('');
+                }
             };
-            reader.readAsText(file);
-        }
-    };
 
-    // Gera e baixa o arquivo CSV
-    const handleDownloadCSV = () => {
-        if (geocodedResults.length === 0) {
-            alert('Não há dados geocodificados para baixar.');
-            return;
-        }
+            // Geocodifica todos os endereços na lista 'addresses'
+            const handleGeocodeAll = async () => {
+                setIsLoading(true);
+                const results = [];
+                for (const address of addresses) {
+                    const result = await geocodeAddress(address);
+                    results.push(result);
+                }
+                setGeocodedResults(results);
+                setIsLoading(false);
+            };
 
-        const headers = ['Endereço Original', 'Latitude', 'Longitude', 'Status'];
-        const csvRows = [
-            headers.join(','),
-            ...geocodedResults.map(row =>
-                // Garante que os valores sejam escapados para evitar problemas com vírgulas dentro do endereço
-                `"${row.originalAddress.replace(/"/g, '""')}",${row.latitude},${row.longitude},${row.status}`
-            )
-        ];
+            // Lida com a importação de arquivos CSV
+            const handleFileUpload = (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const text = e.target.result;
+                        const importedAddresses = text.split('\n')
+                                                    .map(line => line.trim())
+                                                    .filter(line => line !== '');
+                        setAddresses(prev => [...prev, ...importedAddresses]);
+                        // Usando um modal simples para feedback em vez de alert()
+                        alert('Endereços importados com sucesso! Clique em "Geocodificar Tudo" para processá-los.');
+                    };
+                    reader.readAsText(file);
+                }
+            };
 
-        const csvString = csvRows.join('\n');
-        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.setAttribute('download', 'enderecos_geocodificados.csv');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
+            // Gera e baixa o arquivo CSV
+            const handleDownloadCSV = () => {
+                if (geocodedResults.length === 0) {
+                    alert('Não há dados geocodificados para baixar.');
+                    return;
+                }
 
-    return (
-        <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 font-sans">
-            <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-4xl">
-                <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">Geocodificador de Endereços</h1>
+                const headers = ['Endereço Original', 'Latitude', 'Longitude', 'Status'];
+                const csvRows = [
+                    headers.join(','),
+                    ...geocodedResults.map(row =>
+                        // Garante que os valores sejam escapados para evitar problemas com vírgulas dentro do endereço
+                        `"${row.originalAddress.replace(/"/g, '""')}",${row.latitude},${row.longitude},${row.status}`
+                    )
+                ];
 
-                {/* Informação sobre a API de Geocodificação */}
-                <div className="text-center text-sm text-gray-600 mb-6">
-                    <p>
-                        Este aplicativo utiliza a API Nominatim do{' '}
-                        <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                            OpenStreetMap
-                        </a>{' '}
-                        para geocodificação.
-                    </p>
-                </div>
+                const csvString = csvRows.join('\n');
+                const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.setAttribute('download', 'enderecos_geocodificados.csv');
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
 
-                {/* Navegação por abas */}
-                <div className="flex justify-center mb-6">
-                    <button
-                        className={`px-6 py-3 rounded-l-lg font-medium transition-colors duration-300
-                            ${activeTab === 'manual' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
-                        onClick={() => setActiveTab('manual')}
-                    >
-                        Entrada Manual
-                    </button>
-                    <button
-                        className={`px-6 py-3 rounded-r-lg font-medium transition-colors duration-300
-                            ${activeTab === 'import' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
-                        onClick={() => setActiveTab('import')}
-                    >
-                        Importar CSV
-                    </button>
-                </div>
+            return (
+                <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 font-sans">
+                    <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-4xl">
+                        <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">Geocodificador de Endereços</h1>
 
-                {/* Botão de Ajuda */}
-                <div className="flex justify-center mb-6">
-                    <button
-                        className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-300 transition-colors duration-300 flex items-center"
-                        onClick={() => setShowHelp(!showHelp)}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-help-circle mr-2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
-                        {showHelp ? 'Esconder Ajuda' : 'Como Inserir Endereços?'}
-                    </button>
-                </div>
+                        {/* Informação sobre a API de Geocodificação */}
+                        <div className="text-center text-sm text-gray-600 mb-6">
+                            <p>
+                                Este aplicativo utiliza a API Nominatim do{' '}
+                                <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                    OpenStreetMap
+                                </a>{' '}
+                                para geocodificação.
+                            </p>
+                        </div>
 
-                {/* Seção de Ajuda (condicional) */}
-                {showHelp && (
-                    <div className="bg-yellow-50 border-l-4 border-yellow-500 text-yellow-800 p-4 mb-6 rounded-lg shadow-sm">
-                        <h3 className="font-bold text-lg mb-2">Dicas para Inserir Endereços:</h3>
-                        <ul className="list-disc list-inside text-sm space-y-1">
-                            <li>Para melhores resultados, insira o endereço completo, incluindo rua, número, bairro, cidade, estado e país.</li>
-                            <li>**Exemplo:** `Rua Ciro Melo, 291, Centro, Dourados - MS, Brasil`</li>
-                            <li>Você pode omitir alguns detalhes, mas quanto mais informações, mais precisa será a geocodificação.</li>
-                            <li>Para endereços no Brasil, incluir o estado (ex: MS) e o país (Brasil) ajuda muito.</li>
-                            <li>Ao importar um CSV, certifique-se de que cada linha contenha um único endereço.</li>
-                        </ul>
-                    </div>
-                )}
-
-                {/* Conteúdo da aba de Entrada Manual */}
-                {activeTab === 'manual' && (
-                    <div className="space-y-6">
-                        <div className="flex flex-col sm:flex-row gap-4">
-                            <input
-                                type="text"
-                                className="flex-grow p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                placeholder="Digite um endereço (ex: Av. Paulista, 1000, São Paulo)"
-                                value={newAddress}
-                                onChange={(e) => setNewAddress(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && handleAddAddress()}
-                            />
+                        {/* Navegação por abas */}
+                        <div className="flex justify-center mb-6">
                             <button
-                                className="bg-green-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-600 transition-colors duration-300 shadow-md"
-                                onClick={handleAddAddress}
+                                className={`px-6 py-3 rounded-l-lg font-medium transition-colors duration-300
+                                    ${activeTab === 'manual' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                                onClick={() => setActiveTab('manual')}
                             >
-                                Adicionar Endereço
+                                Entrada Manual
+                            </button>
+                            <button
+                                className={`px-6 py-3 rounded-r-lg font-medium transition-colors duration-300
+                                    ${activeTab === 'import' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                                onClick={() => setActiveTab('import')}
+                            >
+                                Importar CSV
                             </button>
                         </div>
 
-                        {addresses.length > 0 && (
-                            <div className="border border-gray-300 rounded-lg p-4 bg-gray-50 max-h-60 overflow-y-auto">
-                                <h2 className="text-lg font-semibold text-gray-700 mb-3">Endereços Adicionados:</h2>
-                                <ul className="list-disc list-inside space-y-1 text-gray-600">
-                                    {addresses.map((addr, index) => (
-                                        <li key={index} className="flex items-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-map-pin mr-2 text-blue-500"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-                                            {addr}
-                                        </li>
-                                    ))}
+                        {/* Botão de Ajuda */}
+                        <div className="flex justify-center mb-6">
+                            <button
+                                className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-300 transition-colors duration-300 flex items-center"
+                                onClick={() => setShowHelp(!showHelp)}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-help-circle mr-2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+                                {showHelp ? 'Esconder Ajuda' : 'Como Inserir Endereços?'}
+                            </button>
+                        </div>
+
+                        {/* Seção de Ajuda (condicional) */}
+                        {showHelp && (
+                            <div className="bg-yellow-50 border-l-4 border-yellow-500 text-yellow-800 p-4 mb-6 rounded-lg shadow-sm">
+                                <h3 className="font-bold text-lg mb-2">Dicas para Inserir Endereços:</h3>
+                                <ul className="list-disc list-inside text-sm space-y-1">
+                                    <li>Para melhores resultados, insira o endereço completo, incluindo rua, número, bairro, cidade, estado e país.</li>
+                                    <li>**Exemplo:** `Rua Ciro Melo, 291, Centro, Dourados - MS, Brasil`</li>
+                                    <li>Você pode omitir alguns detalhes, mas quanto mais informações, mais precisa será a geocodificação.</li>
+                                    <li>Para endereços no Brasil, incluir o estado (ex: MS) e o país (Brasil) ajuda muito.</li>
+                                    <li>Ao importar um CSV, certifique-se de que cada linha contenha um único endereço.</li>
                                 </ul>
                             </div>
                         )}
-                    </div>
-                )}
 
-                {/* Conteúdo da aba de Importar CSV */}
-                {activeTab === 'import' && (
-                    <div className="space-y-6">
-                        <div className="flex flex-col sm:flex-row items-center gap-4 p-4 border border-dashed border-gray-300 rounded-lg bg-gray-50">
-                            <input
-                                type="file"
-                                accept=".csv"
-                                className="block w-full text-sm text-gray-500
-                                    file:mr-4 file:py-2 file:px-4
-                                    file:rounded-full file:border-0
-                                    file:text-sm file:font-semibold
-                                    file:bg-blue-50 file:text-blue-700
-                                    hover:file:bg-blue-100"
-                                onChange={handleFileUpload}
-                            />
-                            <span className="text-gray-600 text-sm">Apenas arquivos CSV. Cada linha deve ser um endereço.</span>
-                        </div>
-                    </div>
-                )}
+                        {/* Conteúdo da aba de Entrada Manual */}
+                        {activeTab === 'manual' && (
+                            <div className="space-y-6">
+                                <div className="flex flex-col sm:flex-row gap-4">
+                                    <input
+                                        type="text"
+                                        className="flex-grow p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="Digite um endereço (ex: Av. Paulista, 1000, São Paulo)"
+                                        value={newAddress}
+                                        onChange={(e) => setNewAddress(e.target.value)}
+                                        onKeyPress={(e) => e.key === 'Enter' && handleAddAddress()}
+                                    />
+                                    <button
+                                        className="bg-green-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-600 transition-colors duration-300 shadow-md"
+                                        onClick={handleAddAddress}
+                                    >
+                                        Adicionar Endereço
+                                    </button>
+                                </div>
 
-                {/* Botões de Ação */}
-                <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
-                    <button
-                        className="bg-blue-600 text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-blue-700 transition-colors duration-300 shadow-lg flex items-center justify-center"
-                        onClick={handleGeocodeAll}
-                        disabled={isLoading || addresses.length === 0}
-                    >
-                        {isLoading ? (
-                            <>
-                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                Geocodificando...
-                            </>
-                        ) : (
-                            <>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-map-pin mr-2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-                                Geocodificar Tudo
-                            </>
+                                {addresses.length > 0 && (
+                                    <div className="border border-gray-300 rounded-lg p-4 bg-gray-50 max-h-60 overflow-y-auto">
+                                        <h2 className="text-lg font-semibold text-gray-700 mb-3">Endereços Adicionados:</h2>
+                                        <ul className="list-disc list-inside space-y-1 text-gray-600">
+                                            {addresses.map((addr, index) => (
+                                                <li key={index} className="flex items-center">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-map-pin mr-2 text-blue-500"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                                                    {addr}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
                         )}
-                    </button>
-                    <button
-                        className="bg-purple-600 text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-purple-700 transition-colors duration-300 shadow-lg flex items-center justify-center"
-                        onClick={handleDownloadCSV}
-                        disabled={geocodedResults.length === 0}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-download mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-                        Baixar CSV
-                    </button>
-                </div>
 
-                {/* Resultados Geocodificados */}
-                {geocodedResults.length > 0 && (
-                    <div className="mt-8 border border-gray-300 rounded-lg p-6 bg-blue-50">
-                        <h2 className="text-2xl font-bold text-blue-800 mb-4 text-center">Resultados Geocodificados</h2>
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full bg-white rounded-lg shadow-md">
-                                <thead className="bg-blue-100">
-                                    <tr>
-                                        <th className="py-3 px-4 text-left text-sm font-semibold text-blue-700 uppercase tracking-wider rounded-tl-lg">Endereço Original</th>
-                                        <th className="py-3 px-4 text-left text-sm font-semibold text-blue-700 uppercase tracking-wider">Latitude</th>
-                                        <th className="py-3 px-4 text-left text-sm font-semibold text-blue-700 uppercase tracking-wider">Longitude</th>
-                                        <th className="py-3 px-4 text-left text-sm font-semibold text-blue-700 uppercase tracking-wider rounded-tr-lg">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-200">
-                                    {geocodedResults.map((result, index) => (
-                                        <tr key={index} className="hover:bg-gray-50 transition-colors duration-150">
-                                            <td className="py-3 px-4 text-sm text-gray-800">{result.originalAddress}</td>
-                                            <td className="py-3 px-4 text-sm text-gray-800">{result.latitude}</td>
-                                            <td className="py-3 px-4 text-sm text-gray-800">{result.longitude}</td>
-                                            <td className="py-3 px-4 text-sm text-gray-800">{result.status}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                        {/* Conteúdo da aba de Importar CSV */}
+                        {activeTab === 'import' && (
+                            <div className="space-y-6">
+                                <div className="flex flex-col sm:flex-row items-center gap-4 p-4 border border-dashed border-gray-300 rounded-lg bg-gray-50">
+                                    <input
+                                        type="file"
+                                        accept=".csv"
+                                        className="block w-full text-sm text-gray-500
+                                            file:mr-4 file:py-2 file:px-4
+                                            file:rounded-full file:border-0
+                                            file:text-sm file:font-semibold
+                                            file:bg-blue-50 file:text-blue-700
+                                            hover:file:bg-blue-100"
+                                        onChange={handleFileUpload}
+                                    />
+                                    <span className="text-gray-600 text-sm">Apenas arquivos CSV. Cada linha deve ser um endereço.</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Botões de Ação */}
+                        <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
+                            <button
+                                className="bg-blue-600 text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-blue-700 transition-colors duration-300 shadow-lg flex items-center justify-center"
+                                onClick={handleGeocodeAll}
+                                disabled={isLoading || addresses.length === 0}
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Geocodificando...
+                                    </>
+                                ) : (
+                                    <>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-map-pin mr-2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                                        Geocodificar Tudo
+                                    </>
+                                )}
+                            </button>
+                            <button
+                                className="bg-purple-600 text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-purple-700 transition-colors duration-300 shadow-lg flex items-center justify-center"
+                                onClick={handleDownloadCSV}
+                                disabled={geocodedResults.length === 0}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-download mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                                Baixar CSV
+                            </button>
+                        </div>
+
+                        {/* Resultados Geocodificados */}
+                        {geocodedResults.length > 0 && (
+                            <div className="mt-8 border border-gray-300 rounded-lg p-6 bg-blue-50">
+                                <h2 className="text-2xl font-bold text-blue-800 mb-4 text-center">Resultados Geocodificados</h2>
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full bg-white rounded-lg shadow-md">
+                                        <thead className="bg-blue-100">
+                                            <tr>
+                                                <th className="py-3 px-4 text-left text-sm font-semibold text-blue-700 uppercase tracking-wider rounded-tl-lg">Endereço Original</th>
+                                                <th className="py-3 px-4 text-left text-sm font-semibold text-blue-700 uppercase tracking-wider">Latitude</th>
+                                                <th className="py-3 px-4 text-left text-sm font-semibold text-blue-700 uppercase tracking-wider">Longitude</th>
+                                                <th className="py-3 px-4 text-left text-sm font-semibold text-blue-700 uppercase tracking-wider rounded-tr-lg">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-200">
+                                            {geocodedResults.map((result, index) => (
+                                                <tr key={index} className="hover:bg-gray-50 transition-colors duration-150">
+                                                    <td className="py-3 px-4 text-sm text-gray-800">{result.originalAddress}</td>
+                                                    <td className="py-3 px-4 text-sm text-gray-800">{result.latitude}</td>
+                                                    <td className="py-3 px-4 text-sm text-gray-800">{result.longitude}</td>
+                                                    <td className="py-3 px-4 text-sm text-gray-800">{result.status}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Créditos - Rodapé Bonito */}
+                        <div className="mt-10 pt-6 border-t-2 border-gray-200 text-center text-gray-600 text-sm bg-gray-50 rounded-b-lg p-4 shadow-inner">
+                            <p className="font-semibold text-gray-800 mb-1">Desenvolvido por <span className="text-blue-700">AIGEO Mapas</span></p>
+                            <p className="mb-1">Geógrafo da AIGEO, Prof. M.Sc Antonio Idêrlian Pereira de Sousa</p>
+                            <p className="mb-1">
+                                Currículo Lattes:{' '}
+                                <a href="http://lattes.cnpq.br/8679039748672255" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium">
+                                    http://lattes.cnpq.br/8679039748672255
+                                </a>
+                            </p>
+                            <p>
+                                Instagram da AIGEO:{' '}
+                                <a href="https://www.instagram.com/aigeomapas/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium">
+                                    https://www.instagram.com/aigeomapas/
+                                </a>
+                            </p>
                         </div>
                     </div>
-                )}
-
-                {/* Créditos - Rodapé Bonito */}
-                <div className="mt-10 pt-6 border-t-2 border-gray-200 text-center text-gray-600 text-sm bg-gray-50 rounded-b-lg p-4 shadow-inner">
-                    <p className="font-semibold text-gray-800 mb-1">Desenvolvido por <span className="text-blue-700">AIGEO Mapas</span></p>
-                    <p className="mb-1">Geógrafo da AIGEO, Prof. M.Sc Antonio Idêrlian Pereira de Sousa</p>
-                    <p className="mb-1">
-                        Currículo Lattes:{' '}
-                        <a href="http://lattes.cnpq.br/8679039748672255" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium">
-                            http://lattes.cnpq.br/8679039748672255
-                        </a>
-                    </p>
-                    <p>
-                        Instagram da AIGEO:{' '}
-                        <a href="https://www.instagram.com/aigeomapas/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium">
-                            https://www.instagram.com/aigeomapas/
-                        </a>
-                    </p>
                 </div>
-            </div>
-        </div>
-    );
-};
+            );
+        };
 
-export default App;
+        // Renderiza o componente App no elemento com id "root"
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
